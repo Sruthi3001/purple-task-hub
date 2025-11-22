@@ -102,11 +102,11 @@ export default {
         "checkbox-check": "checkbox-check 0.3s ease-out",
       },
       backgroundImage: {
-        "gradient-purple": "var(--gradient-purple)",
-        "gradient-purple-soft": "var(--gradient-purple-soft)",
+        "gradient-pastel": "var(--gradient-pastel)",
+        "gradient-soft": "var(--gradient-soft)",
       },
       boxShadow: {
-        purple: "var(--shadow-purple)",
+        pastel: "var(--shadow-pastel)",
         soft: "var(--shadow-soft)",
       },
     },
