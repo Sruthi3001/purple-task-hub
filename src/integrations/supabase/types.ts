@@ -19,7 +19,11 @@ export type Database = {
           completed: boolean
           created_at: string
           due_date: string | null
+          elapsed_time: number | null
+          estimated_time: number | null
           id: string
+          timer_started_at: string | null
+          timer_status: string | null
           title: string
           updated_at: string
           user_id: string
@@ -28,7 +32,11 @@ export type Database = {
           completed?: boolean
           created_at?: string
           due_date?: string | null
+          elapsed_time?: number | null
+          estimated_time?: number | null
           id?: string
+          timer_started_at?: string | null
+          timer_status?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -37,7 +45,11 @@ export type Database = {
           completed?: boolean
           created_at?: string
           due_date?: string | null
+          elapsed_time?: number | null
+          estimated_time?: number | null
           id?: string
+          timer_started_at?: string | null
+          timer_status?: string | null
           title?: string
           updated_at?: string
           user_id?: string
