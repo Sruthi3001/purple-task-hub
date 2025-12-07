@@ -10,6 +10,7 @@ import { CheckCircle2, Circle, LogOut, Plus, Trash2, Calendar as CalendarIcon, B
 import { DatePicker } from "@/components/DatePicker";
 import { Timetable } from "@/components/Timetable";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TaskTimer } from "@/components/TaskTimer";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 
 interface Todo {
@@ -18,6 +19,9 @@ interface Todo {
   completed: boolean;
   created_at: string;
   due_date: string | null;
+  elapsed_time: number;
+  timer_status: "stopped" | "running" | "paused";
+  timer_started_at: string | null;
 }
 
 const Index = () => {
@@ -41,7 +45,10 @@ const Index = () => {
       .from("todos")
       .select("*")
       .order("created_at", { ascending: false });
-    setTodos(data || []);
+    setTodos((data || []).map(item => ({
+      ...item,
+      timer_status: item.timer_status as "stopped" | "running" | "paused"
+    })));
   };
 
   const addTodo = async () => {
@@ -78,6 +85,59 @@ const Index = () => {
     await supabase.from("todos").delete().eq("id", id);
     fetchTodos();
     toast.success("Task deleted");
+  };
+
+  const startTimer = async (id: string) => {
+    await supabase
+      .from("todos")
+      .update({ 
+        timer_status: "running",
+        timer_started_at: new Date().toISOString()
+      })
+      .eq("id", id);
+    fetchTodos();
+  };
+
+  const pauseTimer = async (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    if (!todo || !todo.timer_started_at) return;
+
+    const startTime = new Date(todo.timer_started_at).getTime();
+    const additionalTime = Math.floor((Date.now() - startTime) / 1000);
+    const newElapsedTime = todo.elapsed_time + additionalTime;
+
+    await supabase
+      .from("todos")
+      .update({ 
+        timer_status: "paused",
+        elapsed_time: newElapsedTime,
+        timer_started_at: null
+      })
+      .eq("id", id);
+    fetchTodos();
+  };
+
+  const stopTimer = async (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+
+    let finalElapsedTime = todo.elapsed_time;
+    if (todo.timer_status === "running" && todo.timer_started_at) {
+      const startTime = new Date(todo.timer_started_at).getTime();
+      const additionalTime = Math.floor((Date.now() - startTime) / 1000);
+      finalElapsedTime += additionalTime;
+    }
+
+    await supabase
+      .from("todos")
+      .update({ 
+        timer_status: "stopped",
+        elapsed_time: finalElapsedTime,
+        timer_started_at: null
+      })
+      .eq("id", id);
+    fetchTodos();
+    toast.success("Timer stopped");
   };
 
   const handleLogout = async () => {
@@ -239,11 +299,18 @@ const Index = () => {
                         }`}>
                           {todo.title}
                         </p>
-                        {todo.due_date && (
-                          <div className="flex items-center gap-2 mt-1">
-                            {getDueDateBadge(todo.due_date)}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          {todo.due_date && getDueDateBadge(todo.due_date)}
+                          <TaskTimer
+                            taskId={todo.id}
+                            timerStatus={todo.timer_status}
+                            elapsedTime={todo.elapsed_time}
+                            timerStartedAt={todo.timer_started_at}
+                            onStart={startTimer}
+                            onPause={pauseTimer}
+                            onStop={stopTimer}
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
