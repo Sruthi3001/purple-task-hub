@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Circle, LogOut, Plus, Trash2, Calendar as CalendarIcon, BookOpen, ListTodo } from "lucide-react";
 import { DatePicker } from "@/components/DatePicker";
 import { Timetable } from "@/components/Timetable";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 
 interface Todo {
@@ -124,14 +125,17 @@ const Index = () => {
               </h1>
               <p className="text-muted-foreground mt-1">{user?.email}</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="hover:bg-destructive hover:text-destructive-foreground transition-all"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="hover:bg-destructive hover:text-destructive-foreground transition-all"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </Card>
 
