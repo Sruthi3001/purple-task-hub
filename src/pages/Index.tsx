@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface Todo {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
@@ -51,14 +53,16 @@ const Index = () => {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        await fetchTodos();
+      if (!user) {
+        navigate("/auth");
+        return;
       }
+      setUser(user);
+      await fetchTodos();
       setLoading(false);
     };
     checkUser();
-  }, [fetchTodos]);
+  }, [fetchTodos, navigate]);
 
   const addTodo = async () => {
     if (!newTodo.trim() || !user) return;
