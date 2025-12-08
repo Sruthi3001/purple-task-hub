@@ -84,8 +84,8 @@ export const TimeStats = ({ todos }: TimeStatsProps) => {
                   outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  labelLine={false}
+                  label={({ name, percent, value }) => `${name} - ${formatTime(value)} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={true}
                 >
                   {chartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
