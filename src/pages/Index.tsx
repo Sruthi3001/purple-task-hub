@@ -34,14 +34,11 @@ const Index = () => {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
-  const fetchTodos = useCallback(async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (!currentUser) return;
-    
+  const fetchTodos = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("todos")
       .select("*")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setTodos((data || []).map(item => ({
       ...item,
@@ -51,17 +48,35 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        if (session?.user) {
+          // Defer Supabase calls with setTimeout to prevent deadlock
+          setTimeout(() => {
+            fetchTodos(session.user.id);
+          }, 0);
+        } else if (event === 'SIGNED_OUT') {
+          navigate("/auth");
+        }
       }
-      setUser(user);
-      await fetchTodos();
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchTodos(session.user.id);
+      } else {
+        navigate("/auth");
+      }
       setLoading(false);
-    };
-    checkUser();
+    });
+
+    return () => subscription.unsubscribe();
   }, [fetchTodos, navigate]);
 
   const addTodo = async () => {
@@ -82,7 +97,7 @@ const Index = () => {
 
     setNewTodo("");
     setDueDate(undefined);
-    fetchTodos();
+    fetchTodos(user.id);
     toast.success("Task added!");
   };
 
@@ -91,12 +106,12 @@ const Index = () => {
       .from("todos")
       .update({ completed: !completed })
       .eq("id", id);
-    fetchTodos();
+    if (user) fetchTodos(user.id);
   };
 
   const deleteTodo = async (id: string) => {
     await supabase.from("todos").delete().eq("id", id);
-    fetchTodos();
+    if (user) fetchTodos(user.id);
     toast.success("Task deleted");
   };
 
@@ -108,7 +123,7 @@ const Index = () => {
         timer_started_at: new Date().toISOString()
       })
       .eq("id", id);
-    fetchTodos();
+    if (user) fetchTodos(user.id);
   };
 
   const pauseTimer = async (id: string) => {
@@ -127,7 +142,7 @@ const Index = () => {
         timer_started_at: null
       })
       .eq("id", id);
-    fetchTodos();
+    if (user) fetchTodos(user.id);
   };
 
   const stopTimer = async (id: string) => {
@@ -149,7 +164,7 @@ const Index = () => {
         timer_started_at: null
       })
       .eq("id", id);
-    fetchTodos();
+    if (user) fetchTodos(user.id);
     toast.success("Timer stopped");
   };
 
