@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/DatePicker";
 import { Timetable } from "@/components/Timetable";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TaskTimer } from "@/components/TaskTimer";
+import { TimeStats } from "@/components/TimeStats";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 
 interface Todo {
@@ -29,27 +30,35 @@ const Index = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkUser();
-    fetchTodos();
-  }, []);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-  };
-
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+    
     const { data } = await supabase
       .from("todos")
       .select("*")
+      .eq("user_id", currentUser.id)
       .order("created_at", { ascending: false });
     setTodos((data || []).map(item => ({
       ...item,
-      timer_status: item.timer_status as "stopped" | "running" | "paused"
+      elapsed_time: item.elapsed_time || 0,
+      timer_status: (item.timer_status as "stopped" | "running" | "paused") || "stopped"
     })));
-  };
+  }, []);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        await fetchTodos();
+      }
+      setLoading(false);
+    };
+    checkUser();
+  }, [fetchTodos]);
 
   const addTodo = async () => {
     if (!newTodo.trim() || !user) return;
@@ -243,6 +252,9 @@ const Index = () => {
                 </div>
               </Card>
             </div>
+
+            {/* Time Statistics */}
+            <TimeStats todos={todos} />
 
             {/* Add Todo Form */}
             <Card className="p-6 bg-gradient-to-br from-card via-secondary/10 to-accent/5 border-border/50 shadow-soft">
