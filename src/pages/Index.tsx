@@ -48,16 +48,20 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!isMounted) return;
+        
         setUser(session?.user ?? null);
         setLoading(false);
         
         if (session?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(() => {
-            fetchTodos(session.user.id);
+            if (isMounted) fetchTodos(session.user.id);
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           navigate("/auth");
@@ -67,16 +71,23 @@ const Index = () => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
       setUser(session?.user ?? null);
+      setLoading(false);
+      
       if (session?.user) {
         fetchTodos(session.user.id);
       } else {
+        // Only redirect if no session and not still loading
         navigate("/auth");
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchTodos, navigate]);
 
   const addTodo = async () => {
